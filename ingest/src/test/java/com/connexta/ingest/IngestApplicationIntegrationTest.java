@@ -29,11 +29,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
-// TODO: Uncomment Itests when reimplementing how the Ingest service deals with storing products
+// TODO - Delete this class when all tests have been moved under itest.
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles("test")
+@Ignore
 public class IngestApplicationIntegrationTest {
 
   private static final byte[] TEST_FILE = "some-content".getBytes();

@@ -35,8 +35,8 @@ public class IngestServiceImpl implements IngestService {
 
   public IngestServiceImpl(
       @NotNull final TransformClient transformClient,
-      @NotEmpty @Value("${endpointUrl.store}") final String callbackEndpoint,
-      @NotEmpty @Value("${endpointUrl.retrieve}") final String retrieveEndpoint) {
+      @NotEmpty @Value("${endpoints.store.url}") final String callbackEndpoint,
+      @NotEmpty @Value("${endpoints.retrieve.url}") final String retrieveEndpoint) {
     this.transformClient = transformClient;
     this.callbackEndpoint = callbackEndpoint;
     this.retrieveEndpoint = retrieveEndpoint;

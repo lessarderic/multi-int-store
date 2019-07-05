@@ -10,7 +10,6 @@ import com.connexta.transformation.rest.models.TransformRequest;
 import com.connexta.transformation.rest.models.TransformResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,21 +21,27 @@ public class TransformClient {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TransformClient.class);
 
-  @Autowired private RestTemplate restTemplate;
+  private final RestTemplate restTemplate;
 
   private final String transformEndpoint;
 
-  public TransformClient(@Value("${endpointUrl.transform}") String transformEndpoint) {
+  private final String transformEndpointVersion;
+
+  public TransformClient(
+      RestTemplate transformClientRestTemplate,
+      @Value("${endpoints.transform.url}") String transformEndpoint,
+      @Value("${endpoints.transform.version}") String transformEndpointVersion) {
+    this.restTemplate = transformClientRestTemplate;
     this.transformEndpoint = transformEndpoint;
+    this.transformEndpointVersion = transformEndpointVersion;
     LOGGER.info("Transformation Service URL: {}", transformEndpoint);
   }
 
   public TransformResponse requestTransform(TransformRequest transformRequest) {
     LOGGER.warn("Entering requestTransform {}", transformEndpoint);
 
-    // TODO: Do not hardcode the accept-version value
     HttpHeaders headers = new HttpHeaders();
-    headers.set("Accept-Version", "0.0.1-SNAPSHOT");
+    headers.set("Accept-Version", transformEndpointVersion);
 
     HttpEntity<TransformRequest> requestEntity = new HttpEntity<>(transformRequest, headers);
     LOGGER.info("Transformation requestEntity: {}", requestEntity.toString());

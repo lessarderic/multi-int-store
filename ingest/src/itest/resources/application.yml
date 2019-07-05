@@ -1,0 +1,10 @@
+# TODO: Update these placeholders when we add tests that use them.
+
+endpoints:
+  store:
+    url: https://localhost/store/
+  transform:
+    url: https://localhost/transform/
+    version: ${transformApiVersion}
+  retrieve:
+    url: https://localhost/retrieve/
