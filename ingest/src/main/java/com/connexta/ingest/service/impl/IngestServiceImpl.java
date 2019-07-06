@@ -6,71 +6,61 @@
  */
 package com.connexta.ingest.service.impl;
 
-import com.connexta.ingest.exceptions.TransformException;
 import com.connexta.ingest.service.api.IngestService;
 import com.connexta.ingest.transform.TransformClient;
-import com.connexta.transformation.rest.models.TransformRequest;
-import com.connexta.transformation.rest.models.TransformResponse;
-import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.UUID;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.UnknownHttpStatusCodeException;
-import org.springframework.web.multipart.MultipartFile;
 
-@Service
+/** Class that contains the Ingest service business logic. */
 public class IngestServiceImpl implements IngestService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IngestServiceImpl.class);
 
-  @NotNull private final TransformClient transformClient;
-  @NotEmpty private final String callbackEndpoint;
-  @NotEmpty private final String retrieveEndpoint;
+  private final TransformClient transformClient;
 
+  private final URL storeEndpoint;
+
+  private final Supplier<String> idGenerator;
+
+  /**
+   * Initializes a new Ingest service instance.
+   *
+   * @param transformClient transformation client that will be used to process the file being
+   *     ingested
+   * @param storeEndpoint URL of the Multi-Int Store endpoint
+   * @param idGenerator supplier of unique ID for resources
+   */
+  // TODO - Replace storeEndpoint with Multi-Int Store client
+  // TODO - Remove idGenerator as the URL should be returned by the Multi-Int Store instead
   public IngestServiceImpl(
-      @NotNull final TransformClient transformClient,
-      @NotEmpty @Value("${endpoints.store.url}") final String callbackEndpoint,
-      @NotEmpty @Value("${endpoints.retrieve.url}") final String retrieveEndpoint) {
+      TransformClient transformClient, URL storeEndpoint, Supplier<String> idGenerator) {
     this.transformClient = transformClient;
-    this.callbackEndpoint = callbackEndpoint;
-    this.retrieveEndpoint = retrieveEndpoint;
-    LOGGER.info("Multi-Int-Store Callback URL: {}", callbackEndpoint);
-    LOGGER.info("Retrieve URL: {}", retrieveEndpoint);
+    this.storeEndpoint = storeEndpoint;
+    this.idGenerator = idGenerator;
   }
 
+  /**
+   * {@inheritDoc} This method stores the file received in the multi-int store and then sends a
+   * transformation request to the transformation service to perform the validation, metadata
+   * extraction.
+   */
   @Override
-  public void ingest(
-      final String mimeType, final MultipartFile file, final Long fileSize, final String fileName)
-      throws IOException, TransformException {
-    final String ingestId = UUID.randomUUID().toString().replace("-", "");
-    // Todo Delegate storing products to the MIS
-    //    s3Adaptor.store(
-    //        new StoreRequest(acceptVersion, fileSize, mimeType, file, title, fileName), ingestId);
+  public void ingest(InputStream file, String fileName, String mimeType, long fileSizeInBytes) {
+    URL productUrl = storeFile();
+    transformClient.transform(productUrl, mimeType, fileSizeInBytes);
+  }
 
-    // TODO get this URL programmatically
-    final String url = new URL(retrieveEndpoint + ingestId).toString();
-    final TransformRequest transformRequest = new TransformRequest();
-    LOGGER.info("{} has been successfully stored in S3 and can be downloaded at {}", fileName, url);
-
-    transformRequest.setBytes(fileSize);
-    transformRequest.setCallbackUrl(callbackEndpoint + ingestId);
-    transformRequest.setId("1"); // TODO This should be removed from the API
-    transformRequest.setMimeType(mimeType);
-    transformRequest.setProductLocation("prod"); // TODO This should be removed from the API
-    transformRequest.setStagedLocation(url);
-
-    final TransformResponse transformResponse;
+  // TODO - Replace with call to Multi-Int Store client
+  private URL storeFile() {
     try {
-      transformResponse = transformClient.requestTransform(transformRequest);
-    } catch (HttpClientErrorException | UnknownHttpStatusCodeException e) {
-      throw new TransformException("The transform request failed", e);
+      return new URL(storeEndpoint.toString() + idGenerator.get());
+    } catch (MalformedURLException e) {
+      // TODO - This should go away when we have the Multi-Int Store client
+      throw new RuntimeException(e);
     }
-    LOGGER.warn("Completed transform request, response is {}", transformResponse);
   }
 }

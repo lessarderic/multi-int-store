@@ -6,7 +6,6 @@
  */
 package com.connexta.ingest.endpoint;
 
-import com.connexta.ingest.exceptions.TransformException;
 import com.connexta.ingest.rest.spring.IngestApi;
 import com.connexta.ingest.service.api.IngestService;
 import java.io.IOException;
@@ -16,11 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+/** Controller class that implements the Ingest endpoint API. */
 @RestController()
 public class IngestController implements IngestApi {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(IngestController.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IngestController.class);
 
   private final IngestService ingestService;
 
@@ -41,29 +42,18 @@ public class IngestController implements IngestApi {
       MultipartFile file,
       String title,
       String fileName) {
-    LOGGER.info("Attempting to ingest {}", fileName);
-
-    final long actualFileSize = file.getSize();
-    if (fileSize != actualFileSize) {
-      final HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-      LOGGER.info(
-          "File size request param ({}) does not match the size of the file ({}). Returning {}.",
-          fileSize,
-          actualFileSize,
-          httpStatus);
-      return new ResponseEntity(httpStatus);
-    }
+    // TODO - Add input validation
+    LOGGER.debug("Received ingest request for file [{}]", fileName);
 
     try {
-      ingestService.ingest(mimeType, file, fileSize, fileName);
-      return new ResponseEntity(HttpStatus.ACCEPTED);
-    } catch (IOException | TransformException e) {
-      LOGGER.warn(
-          String.format(
-              "Unable to complete ingest request with params acceptVersion=%s, fileSize=%d, mimeType=%s, title=%s, fileName=%s",
-              acceptVersion, fileSize, mimeType, title, fileName),
-          e);
-      return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+      ingestService.ingest(file.getInputStream(), fileName, mimeType, fileSize);
+      return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    } catch (IOException e) {
+      LOGGER.error("Failed to read file [{}] input stream", fileName);
+      // Throwing a ResponseStatusException since throwing something like an UncheckedIOException
+      // would probably be converted to a 5xx error code by our common error handler.
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Failed to read file input stream", e);
     }
   }
 }

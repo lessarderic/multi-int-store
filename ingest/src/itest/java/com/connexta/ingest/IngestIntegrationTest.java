@@ -52,9 +52,6 @@ public class IngestIntegrationTest {
   @Value("${endpoints.store.url}")
   private String storeUrl;
 
-  @Value("${endpoints.retrieve.url}")
-  private String retrieveUrl;
-
   @Value("${endpoints.transform.url}")
   private String transformUrl;
 
@@ -102,7 +99,8 @@ public class IngestIntegrationTest {
     jsonPath("$.id", not(isEmptyOrNullString())).match(request);
     // TODO - Ensure that the callback and stagedLocation URLs contain the proper unique ID
     jsonPath("$.callbackUrl", startsWith(storeUrl)).match(request);
-    jsonPath("$.stagedLocation", startsWith(retrieveUrl)).match(request);
+    jsonPath("$.stagedLocation", startsWith(storeUrl)).match(request);
+    jsonPath("$.productLocation", startsWith(storeUrl)).match(request);
     jsonPath("$.mimeType", is(TEXT_PLAIN_VALUE)).match(request);
     jsonPath("$.bytes", is(TEST_FILE_SIZE)).match(request);
   }

@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+/** Spring Configuration for the {@link TransformClientImpl} class. */
 @Configuration
 @EnableAutoConfiguration
 public class TransformClientConfiguration {

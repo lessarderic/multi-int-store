@@ -6,45 +6,16 @@
  */
 package com.connexta.ingest.transform;
 
-import com.connexta.transformation.rest.models.TransformRequest;
-import com.connexta.transformation.rest.models.TransformResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import java.net.URL;
 
-@Service
-public class TransformClient {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransformClient.class);
-
-  private final RestTemplate restTemplate;
-
-  private final String transformEndpoint;
-
-  private final String transformEndpointVersion;
-
-  public TransformClient(
-      RestTemplate transformClientRestTemplate,
-      @Value("${endpoints.transform.url}") String transformEndpoint,
-      @Value("${endpoints.transform.version}") String transformEndpointVersion) {
-    this.restTemplate = transformClientRestTemplate;
-    this.transformEndpoint = transformEndpoint;
-    this.transformEndpointVersion = transformEndpointVersion;
-    LOGGER.info("Transformation Service URL: {}", transformEndpoint);
-  }
-
-  public TransformResponse requestTransform(TransformRequest transformRequest) {
-    LOGGER.warn("Entering requestTransform {}", transformEndpoint);
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("Accept-Version", transformEndpointVersion);
-
-    HttpEntity<TransformRequest> requestEntity = new HttpEntity<>(transformRequest, headers);
-    LOGGER.info("Transformation requestEntity: {}", requestEntity.toString());
-    return restTemplate.postForObject(transformEndpoint, requestEntity, TransformResponse.class);
-  }
+/** Interface for the Transformation service client. */
+public interface TransformClient {
+  /**
+   * Submits a product for transformation.
+   *
+   * @param productUrl URL to the product to transform
+   * @param mimeType mime type of the product to transform
+   * @param sizeInBytes size of the product to transform
+   */
+  void transform(URL productUrl, String mimeType, long sizeInBytes);
 }

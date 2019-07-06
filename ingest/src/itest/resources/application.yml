@@ -6,5 +6,3 @@ endpoints:
   transform:
     url: https://localhost/transform/
     version: ${transformApiVersion}
-  retrieve:
-    url: https://localhost/retrieve/
