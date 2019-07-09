@@ -17,5 +17,5 @@ public interface TransformClient {
    * @param mimeType mime type of the product to transform
    * @param sizeInBytes size of the product to transform
    */
-  void transform(URL productUrl, String mimeType, long sizeInBytes);
+  void transform(URL productUrl, String mimeType, long sizeInBytes) throws IllegalArgumentException;
 }

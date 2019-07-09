@@ -9,13 +9,13 @@ package com.connexta.ingest.endpoint;
 import com.connexta.ingest.rest.spring.IngestApi;
 import com.connexta.ingest.service.api.IngestService;
 import java.io.IOException;
+import java.io.InputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Controller class that implements the Ingest endpoint API. */
 @RestController()
@@ -42,18 +42,19 @@ public class IngestController implements IngestApi {
       MultipartFile file,
       String title,
       String fileName) {
-    // TODO - Add input validation
     LOGGER.debug("Received ingest request for file [{}]", fileName);
 
+    InputStream fileInputStream;
+
+    // TODO - Add other input validation
     try {
-      ingestService.ingest(file.getInputStream(), fileName, mimeType, fileSize);
-      return new ResponseEntity<>(HttpStatus.ACCEPTED);
+      fileInputStream = file.getInputStream();
     } catch (IOException e) {
       LOGGER.error("Failed to read file [{}] input stream", fileName);
-      // Throwing a ResponseStatusException since throwing something like an UncheckedIOException
-      // would probably be converted to a 5xx error code by our common error handler.
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Failed to read file input stream", e);
+      throw new IllegalArgumentException("Failed to read file input stream", e);
     }
+
+    ingestService.ingest(fileInputStream, fileName, mimeType, fileSize);
+    return new ResponseEntity<>(HttpStatus.ACCEPTED);
   }
 }

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 /** Rest implementation of the transform service client. */
@@ -52,8 +53,18 @@ public class TransformClientImpl implements TransformClient {
 
     TransformRequest transformRequest = buildRequest(productUrl, mimeType, sizeInBytes);
     HttpEntity<TransformRequest> requestHttpEntity = buildHttpEntity(transformRequest);
-    restTemplate.postForObject(transformEndpoint, requestHttpEntity, TransformResponse.class);
-    // TODO - Update when the transformation service returns something we need
+    try {
+      restTemplate.postForObject(transformEndpoint, requestHttpEntity, TransformResponse.class);
+      // TODO - Update when the transformation service returns something we need
+    } catch (HttpClientErrorException.BadRequest e) {
+      String message =
+          String.format(
+              "Failed to transform product [%s] with mime type [%s] and a size of [%d] bytes",
+              productUrl, mimeType, sizeInBytes);
+      LOGGER.error(message, e);
+      throw new IllegalArgumentException(message, e);
+    }
+    // TODO - Handle other status codes
   }
 
   private TransformRequest buildRequest(URL productUrl, String mimeType, long sizeInBytes) {

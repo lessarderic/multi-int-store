@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.ACCEPTED;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -88,10 +89,42 @@ public class IngestIntegrationTest {
                 .param("fileName", "file")
                 .param("title", "qualityTitle")
                 .param("mimeType", TEXT_PLAIN_VALUE)
-                .header("Accept-Version", "1.2.1")
+                .header("Accept-Version", "1.2.1") // TODO - Get the version configuration
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.MULTIPART_FORM_DATA))
         .andExpect(status().isAccepted());
+  }
+
+  /**
+   * Tests that the Ingest service returns a 400 (bad request) status code when the Transformation
+   * service returns a 400 status code. This should not happen since the ingest endpoint should
+   * perform the proper validation before submitting the transformation request, but if it does
+   * happen, the client should not re-submit the same request, thus the 400 status code being
+   * returned.
+   */
+  @Test
+  public void transformRequestReturnsStatusCode400() throws Exception {
+    server
+        .expect(requestTo(transformUrl))
+        .andExpect(method(POST))
+        .andExpect(header("Accept-Version", tranformApiVersion))
+        .andExpect(this::matchTransformRequest)
+        .andRespond(
+            withStatus(BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(errorResponse(BAD_REQUEST.value(), "Bad request", "Invalid request")));
+
+    mvc.perform(
+            multipart("/ingest")
+                .file("file", TEST_FILE)
+                .param("fileSize", String.valueOf(TEST_FILE_SIZE))
+                .param("fileName", "file")
+                .param("title", "qualityTitle")
+                .param("mimeType", TEXT_PLAIN_VALUE)
+                .header("Accept-Version", "1.2.1") // TODO - Get the version configuration
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.MULTIPART_FORM_DATA))
+        .andExpect(status().isBadRequest());
   }
 
   private void matchTransformRequest(ClientHttpRequest request) throws IOException {
@@ -103,5 +136,12 @@ public class IngestIntegrationTest {
     jsonPath("$.productLocation", startsWith(storeUrl)).match(request);
     jsonPath("$.mimeType", is(TEXT_PLAIN_VALUE)).match(request);
     jsonPath("$.bytes", is(TEST_FILE_SIZE)).match(request);
+  }
+
+  private String errorResponse(int status, String error, String message) {
+    //    return "{}";
+    return String.format(
+        "{ \"timestamp\": \"%s\", \"path\": \"%s\", \"status\": %d, \"error\": \"%s\", \"message\": \"%s\"",
+        "2019-05-09T14:47:13.101+0000", "/transform", status, error, message);
   }
 }
